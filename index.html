@@ -1,166 +1,356 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nyavpn — вход</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0b0c10;--surface:#13141a;--surface2:#1c1e27;--border:rgba(255,255,255,0.08);--border-hover:rgba(255,255,255,0.18);--accent:#7c6cfa;--accent-glow:rgba(124,108,250,0.25);--accent-hover:#9588fc;--text:#f0eeff;--muted:rgba(240,238,255,0.45);--danger:#f06060;--success:#4ed89a;--radius:14px;--radius-sm:8px}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,108,250,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(124,108,250,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
-body::after{content:'';position:fixed;top:-20%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(ellipse,rgba(124,108,250,0.15) 0%,transparent 70%);pointer-events:none;z-index:0}
-.page{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem}
-.logo{display:flex;align-items:center;gap:10px;margin-bottom:2.5rem;text-decoration:none}
-.logo-mark{width:38px;height:38px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:#fff}
-.logo-name{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:var(--text)}
-.logo-name span{color:var(--accent)}
-.card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem 2rem 2.25rem;position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(124,108,250,0.6),transparent)}
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--surface2);border-radius:var(--radius-sm);padding:4px;margin-bottom:2rem}
-.tab{padding:9px;text-align:center;font-family:'Syne',sans-serif;font-weight:600;font-size:14px;color:var(--muted);border-radius:6px;cursor:pointer;transition:all 0.2s;user-select:none}
-.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.4)}
-.tab:hover:not(.active){color:var(--text)}
-.form-section{display:none}
-.form-section.active{display:block;animation:fadeUp 0.25s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.field{margin-bottom:1rem}
-label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:0.3px}
-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;-webkit-appearance:none}
-input::placeholder{color:rgba(240,238,255,0.2)}
-input:hover{border-color:var(--border-hover)}
-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-input.error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(240,96,96,0.18)}
-.field-error{font-size:12px;color:var(--danger);margin-top:5px;display:none}
-.field-error.visible{display:block}
-.pw-wrap{position:relative}
-.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex;align-items:center;transition:color 0.2s}
-.pw-toggle:hover{color:var(--text)}
-.pw-wrap input{padding-right:44px}
-.strength-bar{margin-top:8px;display:flex;gap:4px}
-.strength-bar span{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background 0.3s}
-.forgot{text-align:right;margin-top:-6px;margin-bottom:1rem}
-.forgot a{font-size:12px;color:var(--muted);text-decoration:none;cursor:pointer;transition:color 0.2s}
-.forgot a:hover{color:var(--accent)}
-.btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:background 0.2s,transform 0.12s,box-shadow 0.2s;margin-top:0.25rem}
-.btn:hover{background:var(--accent-hover);box-shadow:0 0 20px var(--accent-glow)}
-.btn:active{transform:scale(0.98)}
-.btn.loading{pointer-events:none;opacity:0.7}
-.btn-text{display:flex;align-items:center;justify-content:center;gap:8px}
-.spinner{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.btn.loading .spinner{display:block}
-.divider{display:flex;align-items:center;gap:12px;margin:1.5rem 0;color:var(--muted);font-size:12px}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
-.oauth-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:11px;background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:border-color 0.2s,background 0.2s}
-.oauth-btn:hover{border-color:var(--border-hover);background:var(--surface2)}
-.dashboard{display:none;width:100%;max-width:420px}
-.dashboard.active{display:block;animation:fadeUp 0.3s ease}
-.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;position:relative;overflow:hidden}
-.dash-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(124,108,250,0.6),transparent)}
-.dash-welcome{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;margin-bottom:6px}
-.dash-email{font-size:13px;color:var(--muted);margin-bottom:1.5rem}
-.dash-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(78,216,154,0.12);border:1px solid rgba(78,216,154,0.25);border-radius:20px;padding:5px 12px;font-size:13px;color:var(--success);margin-bottom:1.5rem}
-.dash-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.btn-outline{width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;transition:all 0.2s;margin-top:0.5rem}
-.btn-outline:hover{border-color:var(--danger);color:var(--danger)}
-.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border-radius:var(--radius-sm);padding:12px 20px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;z-index:100;transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.ok{border:1px solid var(--success);color:var(--success)}
-.toast.er{border:1px solid var(--danger);color:var(--danger)}
-.terms-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:1rem;line-height:1.5}
-.terms-note a{color:var(--accent);text-decoration:none}
-.footer{margin-top:1.75rem;font-size:12px;color:var(--muted);text-align:center}
-.footer a{color:var(--accent);text-decoration:none}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MentorSpace — найди своего репетитора онлайн</title>
+  <meta name="description" content="MentorSpace — платформа для поиска онлайн-репетиторов. Более 500 проверенных репетиторов по всем предметам.">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --cream: #FEFCF7;
+      --white: #FFFFFF;
+      --cream-2: #F7F3EB;
+      --cream-3: #EDE8DC;
+      --border: #EAE5D9;
+      --text: #2C2822;
+      --muted: #9B9083;
+      --accent: #5C73F2;
+      --accent-light: #EEF0FF;
+      --accent-hover: #4A60E8;
+      --success: #34C97A;
+      --success-light: #EDFAF3;
+      --danger: #F05252;
+      --warning: #F59E0B;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-lg: 24px;
+      --shadow: 0 2px 20px rgba(44,40,34,0.07);
+      --shadow-lg: 0 8px 40px rgba(44,40,34,0.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      font-weight: 500;
+      line-height: 1.6;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(254,252,247,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 900; font-size: 20px; color: var(--text);
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.5; }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 15px;
+      color: var(--muted);
+      transition: 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--cream-2); }
+    .btn-nav {
+      background: var(--accent) !important;
+      color: #fff !important;
+      font-weight: 800 !important;
+    }
+    .btn-nav:hover { background: var(--accent-hover) !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(92,115,242,0.3) !important; }
+    @media (max-width: 640px) {
+      .nav-links a:not(.btn-nav):not(#nav-cabinet) { display: none; }
+    }
+
+    .hero {
+      max-width: 1200px; margin: 0 auto;
+      padding: 80px 24px 60px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px;
+      background: var(--accent-light);
+      border-radius: 100px;
+      font-size: 14px; font-weight: 700; color: var(--accent);
+      margin-bottom: 28px;
+    }
+    .badge-dot {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 72px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero h1 .highlight {
+      color: var(--accent);
+      text-decoration: underline;
+      text-decoration-color: rgba(92,115,242,0.3);
+      text-underline-offset: 6px;
+    }
+    .hero-sub {
+      font-size: 18px; color: var(--muted);
+      max-width: 560px; margin: 0 auto 36px;
+      font-weight: 600;
+    }
+    .hero-btns {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      flex-wrap: wrap; margin-bottom: 48px;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      padding: 14px 32px;
+      border-radius: var(--radius-sm);
+      font-weight: 800; font-size: 16px;
+      border: none; cursor: pointer; transition: 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(92,115,242,0.35); }
+    .btn-secondary {
+      background: var(--white); color: var(--text);
+      padding: 14px 32px;
+      border-radius: var(--radius-sm);
+      font-weight: 800; font-size: 16px;
+      border: 1.5px solid var(--border);
+      cursor: pointer; transition: 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-secondary:hover { background: var(--cream-2); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .hero-stats { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-num { font-size: 28px; font-weight: 900; }
+    .stat-label { font-size: 13px; color: var(--muted); font-weight: 600; }
+
+    .section { padding: 80px 24px; max-width: 1200px; margin: 0 auto; }
+    .section-title { text-align: center; font-size: 32px; font-weight: 900; margin-bottom: 12px; }
+    .section-sub { text-align: center; color: var(--muted); margin-bottom: 48px; font-size: 16px; font-weight: 600; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    @media (max-width: 768px) { .steps { grid-template-columns: 1fr; } }
+    .step-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      text-align: center; transition: 0.2s;
+    }
+    .step-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+    .step-emoji { font-size: 44px; margin-bottom: 16px; display: block; }
+    .step-num {
+      display: inline-block;
+      background: var(--accent-light); color: var(--accent);
+      font-weight: 900; font-size: 12px;
+      padding: 4px 10px; border-radius: 100px; margin-bottom: 12px;
+    }
+    .step-card h3 { font-weight: 800; font-size: 18px; margin-bottom: 8px; }
+    .step-card p { color: var(--muted); font-size: 15px; }
+
+    .subjects-section { background: var(--cream-2); padding: 80px 24px; }
+    .subjects-inner { max-width: 1200px; margin: 0 auto; }
+    .pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 40px; }
+    .pill {
+      padding: 10px 20px;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      font-weight: 700; font-size: 15px;
+      cursor: pointer; transition: 0.2s; color: var(--text);
+    }
+    .pill:hover { border-color: var(--accent); background: var(--accent-light); color: var(--accent); transform: translateY(-1px); }
+
+    .cta-section { background: var(--accent); padding: 80px 24px; position: relative; overflow: hidden; }
+    .cta-inner { max-width: 700px; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+    .cta-section h2 { font-size: 36px; font-weight: 900; color: #fff; margin-bottom: 16px; }
+    .cta-section p { color: rgba(255,255,255,0.8); font-size: 17px; margin-bottom: 32px; font-weight: 600; }
+    .btn-white {
+      background: #fff; color: var(--accent);
+      padding: 14px 32px; border-radius: var(--radius-sm);
+      font-weight: 800; font-size: 16px;
+      border: none; cursor: pointer; transition: 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-white:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.2); }
+    .cta-circle { position: absolute; width: 400px; height: 400px; background: rgba(255,255,255,0.07); border-radius: 50%; right: -100px; top: -150px; }
+    .cta-circle-2 { position: absolute; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; left: -50px; bottom: -80px; }
+
+    footer { background: var(--cream-2); border-top: 1px solid var(--border); padding: 40px 24px; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .footer-left { display: flex; flex-direction: column; gap: 4px; }
+    .footer-copy { color: var(--muted); font-size: 14px; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { color: var(--muted); font-size: 14px; font-weight: 600; transition: 0.2s; }
+    .footer-links a:hover { color: var(--accent); }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--text); color: #fff;
+      padding: 14px 24px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 9999; max-width: calc(100vw - 48px);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.err { background: var(--danger); }
+  </style>
 </head>
 <body>
-<div class="page">
-  <a class="logo" href="#">
-    <div class="logo-mark">N</div>
-    <div class="logo-name">nya<span>vpn</span></div>
-  </a>
 
-  <div class="card" id="auth-card">
-    <div class="tabs">
-      <div class="tab active" data-tab="login">Вход</div>
-      <div class="tab" data-tab="register">Регистрация</div>
-    </div>
-
-    <div class="form-section active" id="tab-login">
-      <div class="field">
-        <label for="login-email">Email</label>
-        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
-        <div class="field-error" id="login-email-err">Введите корректный email</div>
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="index.html">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       </div>
-      <div class="field">
-        <label for="login-pw">Пароль</label>
-        <div class="pw-wrap">
-          <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password">
-          <button class="pw-toggle" onclick="togglePw('login-pw',this)" aria-label="Показать пароль">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-        <div class="field-error" id="login-pw-err">Введите пароль</div>
-      </div>
-      <div class="forgot"><a onclick="handleForgot()">Забыли пароль?</a></div>
-      <button class="btn" id="login-btn" onclick="handleLogin()">
-        <div class="btn-text"><div class="spinner"></div><span>Войти</span></div>
-      </button>
-      <div class="divider">или</div>
-      <button class="oauth-btn" onclick="handleGoogle()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        Войти через Google
-      </button>
-    </div>
-
-    <div class="form-section" id="tab-register">
-      <div class="field">
-        <label for="reg-name">Имя</label>
-        <input type="text" id="reg-name" placeholder="Иван Иванов" autocomplete="name">
-        <div class="field-error" id="reg-name-err">Введите ваше имя</div>
-      </div>
-      <div class="field">
-        <label for="reg-email">Email</label>
-        <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
-        <div class="field-error" id="reg-email-err">Введите корректный email</div>
-      </div>
-      <div class="field">
-        <label for="reg-pw">Пароль</label>
-        <div class="pw-wrap">
-          <input type="password" id="reg-pw" placeholder="Минимум 8 символов" autocomplete="new-password" oninput="checkStrength(this.value)">
-          <button class="pw-toggle" onclick="togglePw('reg-pw',this)" aria-label="Показать пароль">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-        <div class="strength-bar"><span id="s1"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span></div>
-        <div class="field-error" id="reg-pw-err">Пароль слишком короткий</div>
-      </div>
-      <button class="btn" id="reg-btn" onclick="handleRegister()" style="margin-top:1rem">
-        <div class="btn-text"><div class="spinner"></div><span>Создать аккаунт</span></div>
-      </button>
-      <div class="terms-note">Создавая аккаунт, вы соглашаетесь с <a href="#">Условиями использования</a> и <a href="#">Политикой конфиденциальности</a></div>
+      Mentor<span>Space</span>
+    </a>
+    <div class="nav-links">
+      <a href="search.html">Найти репетитора</a>
+      <a href="auth.html" id="nav-become">Стать репетитором</a>
+      <a href="dashboard.html" id="nav-cabinet" style="display:none">Кабинет</a>
+      <a href="auth.html" id="nav-login" class="btn-nav">Войти</a>
     </div>
   </div>
+</nav>
 
-  <div class="dashboard" id="dashboard">
-    <div class="dash-card">
-      <div class="dash-welcome" id="dash-name">Добро пожаловать!</div>
-      <div class="dash-email" id="dash-email"></div>
-      <div class="dash-badge">Подключено к nyavpn</div>
-      <button class="btn-outline" onclick="handleLogout()">Выйти из аккаунта</button>
+<section class="hero">
+  <div class="badge">
+    <div class="badge-dot"></div>
+    🎓 Более 500 онлайн-репетиторов
+  </div>
+  <h1>Найди репетитора,<br>который тебя <span class="highlight">поймёт</span></h1>
+  <p class="hero-sub">Тысячи учеников уже нашли своего репетитора на MentorSpace. Занимайся в удобное время, не выходя из дома.</p>
+  <div class="hero-btns">
+    <a href="search.html" class="btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Найти репетитора
+    </a>
+    <a href="auth.html" class="btn-secondary">Стать репетитором →</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num" id="stat-tutors">—</div>
+      <div class="stat-label">репетиторов</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="stat-subjects">14+</div>
+      <div class="stat-label">предметов</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="stat-reviews">—</div>
+      <div class="stat-label">отзывов</div>
     </div>
   </div>
+</section>
 
-  <div class="footer">© 2025 nyavpn · <a href="#">Помощь</a> · <a href="#">Статус</a></div>
+<div class="section">
+  <div class="section-title">Как это работает</div>
+  <div class="section-sub">Три простых шага до первого занятия</div>
+  <div class="steps">
+    <div class="step-card">
+      <span class="step-emoji">🔍</span>
+      <div class="step-num">ШАГ 1</div>
+      <h3>Найди по фильтрам</h3>
+      <p>Выбери предмет, укажи удобный бюджет и отсортируй по рейтингу. Только проверенные репетиторы.</p>
+    </div>
+    <div class="step-card">
+      <span class="step-emoji">✉️</span>
+      <div class="step-num">ШАГ 2</div>
+      <h3>Оставь заявку</h3>
+      <p>Напиши репетитору напрямую. Укажи свои цели и удобное время — репетитор ответит тебе на почту.</p>
+    </div>
+    <div class="step-card">
+      <span class="step-emoji">💻</span>
+      <div class="step-num">ШАГ 3</div>
+      <h3>Занимайтесь онлайн</h3>
+      <p>Занятия в Zoom, Google Meet или любой другой платформе. Без дороги и лишних трат времени.</p>
+    </div>
+  </div>
 </div>
 
-<div class="toast ok" id="toast">
-  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+<div class="subjects-section">
+  <div class="subjects-inner">
+    <div class="section-title">Популярные предметы</div>
+    <div class="section-sub">Кликни по предмету, чтобы найти репетитора</div>
+    <div class="pills">
+      <div class="pill" onclick="goSearch('Математика')">📐 Математика</div>
+      <div class="pill" onclick="goSearch('Физика')">⚛️ Физика</div>
+      <div class="pill" onclick="goSearch('Химия')">🧪 Химия</div>
+      <div class="pill" onclick="goSearch('Биология')">🧬 Биология</div>
+      <div class="pill" onclick="goSearch('Английский язык')">🇬🇧 Английский</div>
+      <div class="pill" onclick="goSearch('Русский язык')">📖 Русский язык</div>
+      <div class="pill" onclick="goSearch('История')">🏛️ История</div>
+      <div class="pill" onclick="goSearch('Информатика')">💻 Информатика</div>
+      <div class="pill" onclick="goSearch('Обществознание')">⚖️ Обществознание</div>
+      <div class="pill" onclick="goSearch('Литература')">📚 Литература</div>
+      <div class="pill" onclick="goSearch('Программирование')">🖥️ Программирование</div>
+      <div class="pill" onclick="goSearch('ЕГЭ/ОГЭ')">📝 ЕГЭ/ОГЭ</div>
+      <div class="pill" onclick="goSearch('Алгебра')">➕ Алгебра</div>
+      <div class="pill" onclick="goSearch('Геометрия')">📏 Геометрия</div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="cta-circle"></div>
+  <div class="cta-circle-2"></div>
+  <div class="cta-inner">
+    <h2>Ты репетитор?</h2>
+    <p>Найди учеников бесплатно. Создай анкету за 5 минут и начни получать заявки уже сегодня.</p>
+    <a href="auth.html" class="btn-white">Зарегистрироваться как репетитор →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">
+      <a class="logo" href="index.html" style="font-size:16px">
+        <div class="logo-icon" style="width:28px;height:28px;border-radius:8px">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        Mentor<span>Space</span>
+      </a>
+      <span class="footer-copy">© 2025 MentorSpace. Все права защищены.</span>
+    </div>
+    <div class="footer-links">
+      <a href="search.html">Репетиторы</a>
+      <a href="auth.html">Войти</a>
+      <a href="auth.html">Регистрация</a>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast">
+  <span id="toast-icon"></span>
   <span id="toast-msg"></span>
 </div>
 
@@ -170,124 +360,36 @@ const sb = supabase.createClient(
   'sb_publishable_Yxz_EllSK1ZTxfXfLj222Q_7CEOM2Yb'
 );
 
-sb.auth.getSession().then(({data:{session}})=>{ if(session) showDashboard(session.user); });
-sb.auth.onAuthStateChange((_,session)=>{ if(session) showDashboard(session.user); else showAuth(); });
-
-function showDashboard(user){
-  document.getElementById('auth-card').style.display='none';
-  document.getElementById('dashboard').classList.add('active');
-  const name=user.user_metadata?.full_name||user.user_metadata?.name||'';
-  document.getElementById('dash-name').textContent=name?'Привет, '+name+'! 👋':'Добро пожаловать!';
-  document.getElementById('dash-email').textContent=user.email;
-}
-function showAuth(){
-  document.getElementById('auth-card').style.display='block';
-  document.getElementById('dashboard').classList.remove('active');
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'ok' ? '✓' : '✕';
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-document.querySelectorAll('.tab').forEach(tab=>{
-  tab.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.form-section').forEach(s=>s.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
-  });
-});
-
-function togglePw(id,btn){
-  const input=document.getElementById(id);
-  const isText=input.type==='text';
-  input.type=isText?'password':'text';
-  btn.innerHTML=isText
-    ?'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
-    :'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+function goSearch(subject) {
+  window.location.href = 'search.html?subject=' + encodeURIComponent(subject);
 }
 
-const sc=['#f06060','#f09060','#facc4d','#4ed89a'];
-function checkStrength(pw){
-  let s=0;
-  if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;
-  [1,2,3,4].forEach(i=>{ document.getElementById('s'+i).style.background=i<=s?sc[s-1]:'var(--border)'; });
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    document.getElementById('nav-login').style.display = 'none';
+    document.getElementById('nav-cabinet').style.display = 'inline-flex';
+  }
+  try {
+    const [tutorsRes, reviewsRes] = await Promise.all([
+      sb.from('tutor_profiles').select('id', { count: 'exact', head: true }).eq('is_hidden', false).not('subject', 'is', null),
+      sb.from('reviews').select('id', { count: 'exact', head: true })
+    ]);
+    if (tutorsRes.count !== null) document.getElementById('stat-tutors').textContent = tutorsRes.count + '+';
+    if (reviewsRes.count !== null) document.getElementById('stat-reviews').textContent = reviewsRes.count + '+';
+  } catch(e) {}
 }
 
-function setError(id,msg,show){
-  const el=document.getElementById(id);
-  el.textContent=msg;el.classList.toggle('visible',show);
-  const inp=el.parentElement.querySelector('input');
-  if(inp)inp.classList.toggle('error',show);
-}
-
-function showToast(msg,type){
-  const t=document.getElementById('toast');
-  document.getElementById('toast-msg').textContent=msg;
-  t.className='toast '+(type||'ok');t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3500);
-}
-
-function errMsg(err){
-  const m=err?.message||'';
-  if(m.includes('Invalid login'))return 'Неверный email или пароль';
-  if(m.includes('Email not confirmed'))return 'Подтвердите email — проверьте почту';
-  if(m.includes('already registered'))return 'Этот email уже зарегистрирован';
-  if(m.includes('Password should be'))return 'Пароль слишком короткий (мин. 8 символов)';
-  if(m.includes('rate limit'))return 'Слишком много попыток, подождите немного';
-  return m||'Что-то пошло не так';
-}
-
-async function handleLogin(){
-  const email=document.getElementById('login-email').value.trim();
-  const pw=document.getElementById('login-pw').value;
-  let ok=true;
-  const eok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  setError('login-email-err','Введите корректный email',!eok);if(!eok)ok=false;
-  setError('login-pw-err','Введите пароль',!pw);if(!pw)ok=false;
-  if(!ok)return;
-  const btn=document.getElementById('login-btn');btn.classList.add('loading');
-  const {error}=await sb.auth.signInWithPassword({email,password:pw});
-  btn.classList.remove('loading');
-  if(error)showToast(errMsg(error),'er');
-}
-
-async function handleRegister(){
-  const name=document.getElementById('reg-name').value.trim();
-  const email=document.getElementById('reg-email').value.trim();
-  const pw=document.getElementById('reg-pw').value;
-  let ok=true;
-  setError('reg-name-err','Введите ваше имя',!name);if(!name)ok=false;
-  const eok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  setError('reg-email-err','Введите корректный email',!eok);if(!eok)ok=false;
-  const pok=pw.length>=8;
-  setError('reg-pw-err','Пароль слишком короткий (мин. 8 символов)',!pok);if(!pok)ok=false;
-  if(!ok)return;
-  const btn=document.getElementById('reg-btn');btn.classList.add('loading');
-  const {error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name}}});
-  btn.classList.remove('loading');
-  if(error){showToast(errMsg(error),'er');return;}
-  showToast('Аккаунт создан! Проверьте почту 📧');
-}
-
-async function handleGoogle(){
-  await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
-}
-
-async function handleForgot(){
-  const email=document.getElementById('login-email').value.trim();
-  if(!email){showToast('Введите email выше и нажмите снова','er');return;}
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});
-  if(error){showToast(errMsg(error),'er');return;}
-  showToast('Ссылка отправлена на почту 📧');
-}
-
-async function handleLogout(){
-  await sb.auth.signOut();
-  showToast('Вы вышли из аккаунта');
-}
-
-document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter')return;
-  if(document.getElementById('tab-login').classList.contains('active'))handleLogin();
-  else handleRegister();
-});
+init();
 </script>
 </body>
 </html>

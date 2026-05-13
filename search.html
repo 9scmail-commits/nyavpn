@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Найти репетитора — MentorSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --cream: #FEFCF7; --white: #FFFFFF; --cream-2: #F7F3EB; --cream-3: #EDE8DC;
+      --border: #EAE5D9; --text: #2C2822; --muted: #9B9083;
+      --accent: #5C73F2; --accent-light: #EEF0FF; --accent-hover: #4A60E8;
+      --success: #34C97A; --success-light: #EDFAF3; --danger: #F05252;
+      --radius: 16px; --radius-sm: 10px; --radius-lg: 24px;
+      --shadow: 0 2px 20px rgba(44,40,34,0.07); --shadow-lg: 0 8px 40px rgba(44,40,34,0.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: var(--cream); color: var(--text); font-weight: 500; }
+    a { text-decoration: none; color: inherit; }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(254,252,247,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 20px; }
+    .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.5; }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a { padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 600; font-size: 15px; color: var(--muted); transition: 0.2s; }
+    .nav-links a:hover { color: var(--text); background: var(--cream-2); }
+    .btn-nav { background: var(--accent) !important; color: #fff !important; font-weight: 800 !important; }
+    .btn-nav:hover { background: var(--accent-hover) !important; transform: translateY(-1px); }
+    @media (max-width: 640px) { .nav-links a:not(.btn-nav):not(#nav-cabinet) { display: none; } }
+
+    .search-layout {
+      max-width: 1200px; margin: 0 auto; padding: 32px 24px;
+      display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start;
+    }
+    @media (max-width: 768px) { .search-layout { grid-template-columns: 1fr; } }
+
+    .sidebar {
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 24px;
+      position: sticky; top: 88px;
+    }
+    .sidebar-title { font-weight: 900; font-size: 18px; margin-bottom: 20px; }
+    .filter-group { margin-bottom: 22px; }
+    .filter-label { font-weight: 700; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: block; }
+
+    .subject-wrap { position: relative; }
+    .form-input {
+      width: 100%; padding: 10px 14px;
+      background: var(--cream-2); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 500; color: var(--text);
+      transition: 0.2s; outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 3px rgba(92,115,242,0.12); }
+    .autocomplete {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+      z-index: 50; overflow: hidden; display: none; max-height: 220px; overflow-y: auto;
+    }
+    .autocomplete.open { display: block; }
+    .ac-item { padding: 10px 14px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+    .ac-item:hover { background: var(--accent-light); color: var(--accent); }
+
+    .range-group { display: flex; flex-direction: column; gap: 8px; }
+    .range-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--muted); }
+    input[type="range"] {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      background: var(--cream-3); border-radius: 2px; outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      background: var(--accent); border-radius: 50%; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(92,115,242,0.4);
+    }
+
+    .stars-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+    .star-btn {
+      padding: 6px 12px; border: 1.5px solid var(--border);
+      border-radius: 100px; font-size: 13px; font-weight: 700;
+      cursor: pointer; background: var(--white); color: var(--text); transition: 0.2s;
+    }
+    .star-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+    .star-btn:hover { border-color: var(--accent); }
+
+    .checkbox-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .checkbox-row input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+    .checkbox-row span { font-weight: 600; font-size: 14px; }
+
+    .select-input {
+      width: 100%; padding: 10px 14px;
+      background: var(--cream-2); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 600; color: var(--text);
+      outline: none; cursor: pointer;
+    }
+
+    .btn-reset {
+      width: 100%; padding: 10px; margin-top: 4px;
+      background: var(--cream-2); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-weight: 700; font-size: 14px; color: var(--muted); cursor: pointer; transition: 0.2s;
+    }
+    .btn-reset:hover { color: var(--text); background: var(--cream-3); }
+
+    .mobile-filter-btn {
+      display: none; width: 100%; padding: 12px;
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-weight: 700; font-size: 15px; color: var(--text);
+      cursor: pointer; margin-bottom: 16px;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    @media (max-width: 768px) {
+      .mobile-filter-btn { display: flex; }
+      .sidebar { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: auto; z-index: 200; border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 80vh; overflow-y: auto; }
+      .sidebar.open { display: block; }
+      .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 150; }
+      .overlay.open { display: block; }
+    }
+
+    .main-content { min-width: 0; }
+    .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+    .results-count { font-weight: 700; font-size: 15px; color: var(--muted); }
+    .results-count span { color: var(--text); font-weight: 900; }
+
+    .tutors-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 1024px) { .tutors-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .tutors-grid { grid-template-columns: 1fr; } }
+
+    .tutor-card {
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px;
+      transition: 0.2s; cursor: default;
+    }
+    .tutor-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+    .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+    }
+    .avatar-placeholder {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 18px; color: #fff; flex-shrink: 0;
+    }
+    .card-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .card-name { font-weight: 800; font-size: 16px; }
+    .verified-badge {
+      background: var(--accent-light); color: var(--accent);
+      font-size: 11px; font-weight: 800; padding: 2px 8px;
+      border-radius: 100px;
+    }
+    .card-subject { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .card-meta { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .card-meta-row { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+    .card-meta-row svg { flex-shrink: 0; }
+    .card-actions { display: flex; gap: 8px; }
+    .btn-card-primary {
+      flex: 1; padding: 10px; background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.2s; text-align: center;
+    }
+    .btn-card-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-card-secondary {
+      flex: 1; padding: 10px; background: var(--white); color: var(--text);
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s; text-align: center;
+    }
+    .btn-card-secondary:hover { background: var(--cream-2); transform: translateY(-1px); }
+
+    .skeleton-card {
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px;
+    }
+    .skeleton { background: linear-gradient(90deg, var(--cream-2) 25%, var(--cream-3) 50%, var(--cream-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-sm); }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 64px; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { font-size: 15px; }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 24px; }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--white); border-radius: var(--radius-lg);
+      padding: 32px; width: 100%; max-width: 460px;
+      box-shadow: var(--shadow-lg); animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      max-height: 90vh; overflow-y: auto;
+    }
+    @keyframes modalIn { from { transform: scale(0.95) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-weight: 900; font-size: 20px; }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; transition: 0.2s; }
+    .modal-close:hover { background: var(--cream-2); color: var(--text); }
+    .modal-close svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .tutor-mini { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--cream-2); border-radius: var(--radius-sm); margin-bottom: 20px; }
+    .tutor-mini .avatar-placeholder { width: 40px; height: 40px; font-size: 14px; }
+    .tutor-mini-name { font-weight: 800; font-size: 15px; }
+    .tutor-mini-sub { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .modal .form-group { margin-bottom: 16px; }
+    .modal .form-label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+    .modal textarea { resize: vertical; min-height: 90px; }
+    .btn-modal {
+      width: 100%; padding: 13px; background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; margin-top: 4px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-modal:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-modal:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: #fff; padding: 14px 24px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; box-shadow: var(--shadow-lg); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 9999; max-width: calc(100vw - 48px); }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.err { background: var(--danger); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="index.html">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      Mentor<span>Space</span>
+    </a>
+    <div class="nav-links">
+      <a href="search.html" style="color:var(--text)">Найти репетитора</a>
+      <a href="auth.html" id="nav-become">Стать репетитором</a>
+      <a href="dashboard.html" id="nav-cabinet" style="display:none">Кабинет</a>
+      <a href="auth.html" id="nav-login" class="btn-nav">Войти</a>
+    </div>
+  </div>
+</nav>
+
+<div class="overlay" id="overlay" onclick="closeFilters()"></div>
+
+<div class="search-layout">
+  <!-- SIDEBAR FILTERS -->
+  <button class="mobile-filter-btn" onclick="openFilters()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+    Фильтры
+  </button>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">Фильтры</div>
+
+    <div class="filter-group">
+      <span class="filter-label">Предмет</span>
+      <div class="subject-wrap">
+        <input class="form-input" type="text" id="filter-subject" placeholder="Математика, Физика..." oninput="debouncedSearch(); showAC()" autocomplete="off">
+        <div class="autocomplete" id="ac"></div>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-label">Цена до, ₽</span>
+      <div class="range-group">
+        <input type="range" id="filter-price" min="0" max="5000" step="100" value="5000" oninput="updatePriceLabel(); debouncedSearch()">
+        <div class="range-labels">
+          <span>0 ₽</span>
+          <span id="price-label" style="color:var(--text);font-weight:800">5000 ₽</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-label">Мин. рейтинг</span>
+      <div class="stars-filter">
+        <button class="star-btn active" onclick="setRating(0, this)">Любой</button>
+        <button class="star-btn" onclick="setRating(3, this)">3+ ⭐</button>
+        <button class="star-btn" onclick="setRating(4, this)">4+ ⭐</button>
+        <button class="star-btn" onclick="setRating(5, this)">5 ⭐</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="checkbox-row">
+        <input type="checkbox" id="filter-verified" onchange="doSearch()">
+        <span>Только верифицированные ✓</span>
+      </label>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-label">Сортировка</span>
+      <select class="select-input" id="filter-sort" onchange="doSearch()">
+        <option value="rating">По рейтингу</option>
+        <option value="price_asc">Цена: дешевле</option>
+        <option value="price_desc">Цена: дороже</option>
+        <option value="newest">Новые</option>
+      </select>
+    </div>
+
+    <button class="btn-reset" onclick="resetFilters()">Сбросить фильтры</button>
+  </aside>
+
+  <!-- MAIN RESULTS -->
+  <div class="main-content">
+    <div class="results-header">
+      <div class="results-count">Найдено: <span id="count">—</span> репетиторов</div>
+    </div>
+    <div class="tutors-grid" id="grid"></div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Написать репетитору</div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="tutor-mini" id="modal-tutor-info"></div>
+    <div class="form-group">
+      <label class="form-label">Ваше имя *</label>
+      <input class="form-input" type="text" id="req-name" placeholder="Иван Иванов">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email *</label>
+      <input class="form-input" type="email" id="req-email" placeholder="your@email.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Телефон</label>
+      <input class="form-input" type="tel" id="req-phone" placeholder="+7 999 123-45-67">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Сообщение</label>
+      <textarea class="form-input" id="req-msg" rows="3" placeholder="Расскажите о ваших целях..."></textarea>
+    </div>
+    <button class="btn-modal" id="btn-send" onclick="sendRequest()">
+      <div class="spinner" id="send-spinner"></div>
+      <span id="send-text">Отправить заявку</span>
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toast-icon"></span>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://zskocbphdwcoskknyuru.supabase.co',
+  'sb_publishable_Yxz_EllSK1ZTxfXfLj222Q_7CEOM2Yb'
+);
+
+const SUBJECTS = ['Математика','Алгебра','Геометрия','Физика','Химия','Биология','Английский язык','Русский язык','Литература','История','Обществознание','Информатика','Программирование','ЕГЭ/ОГЭ'];
+
+let currentRating = 0;
+let currentTutor = null;
+let session = null;
+let debounceTimer = null;
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'ok' ? '✓' : '✕';
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function getInitials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+function avatarColor(str) {
+  const colors = ['#5C73F2','#34C97A','#F59E0B','#F05252','#8B5CF6','#EC4899'];
+  let h = 0; for (let c of (str||'x')) h = c.charCodeAt(0) + ((h << 5) - h);
+  return colors[Math.abs(h) % colors.length];
+}
+
+function updatePriceLabel() {
+  const v = document.getElementById('filter-price').value;
+  document.getElementById('price-label').textContent = parseInt(v) === 5000 ? '5000+ ₽' : v + ' ₽';
+}
+
+function setRating(val, btn) {
+  currentRating = val;
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  doSearch();
+}
+
+function showAC() {
+  const val = document.getElementById('filter-subject').value.trim().toLowerCase();
+  const ac = document.getElementById('ac');
+  if (!val) { ac.classList.remove('open'); return; }
+  const matches = SUBJECTS.filter(s => s.toLowerCase().includes(val));
+  if (!matches.length) { ac.classList.remove('open'); return; }
+  ac.innerHTML = matches.map(s => `<div class="ac-item" onclick="selectSubject('${s}')">${s}</div>`).join('');
+  ac.classList.add('open');
+}
+
+function selectSubject(val) {
+  document.getElementById('filter-subject').value = val;
+  document.getElementById('ac').classList.remove('open');
+  doSearch();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.subject-wrap')) document.getElementById('ac').classList.remove('open');
+});
+
+function debouncedSearch() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(doSearch, 300);
+}
+
+function resetFilters() {
+  document.getElementById('filter-subject').value = '';
+  document.getElementById('filter-price').value = 5000;
+  updatePriceLabel();
+  currentRating = 0;
+  document.querySelectorAll('.star-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  document.getElementById('filter-verified').checked = false;
+  document.getElementById('filter-sort').value = 'rating';
+  history.replaceState({}, '', 'search.html');
+  doSearch();
+}
+
+function openFilters() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeFilters() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function renderSkeletons() {
+  document.getElementById('grid').innerHTML = Array(6).fill(`
+    <div class="skeleton-card">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">
+        <div class="skeleton" style="width:56px;height:56px;border-radius:50%"></div>
+        <div style="flex:1">
+          <div class="skeleton" style="height:16px;width:70%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:13px;width:50%"></div>
+        </div>
+      </div>
+      <div class="skeleton" style="height:14px;width:80%;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:14px;width:60%;margin-bottom:16px"></div>
+      <div style="display:flex;gap:8px">
+        <div class="skeleton" style="flex:1;height:38px;border-radius:10px"></div>
+        <div class="skeleton" style="flex:1;height:38px;border-radius:10px"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function doSearch() {
+  renderSkeletons();
+  const subject = document.getElementById('filter-subject').value.trim();
+  const maxPrice = parseInt(document.getElementById('filter-price').value);
+  const verified = document.getElementById('filter-verified').checked;
+  const sort = document.getElementById('filter-sort').value;
+
+  const params = new URLSearchParams();
+  if (subject) params.set('subject', subject);
+  if (maxPrice < 5000) params.set('price', maxPrice);
+  if (currentRating) params.set('rating', currentRating);
+  if (verified) params.set('verified', '1');
+  params.set('sort', sort);
+  history.replaceState({}, '', 'search.html?' + params.toString());
+
+  try {
+    let query = sb
+      .from('tutor_profiles')
+      .select('id, subject, about, price, avatar_url, rating_avg, reviews_count, social_link, profiles!inner(full_name, is_verified)')
+      .eq('is_hidden', false)
+      .not('subject', 'is', null)
+      .not('price', 'is', null);
+
+    if (subject) query = query.ilike('subject', `%${subject}%`);
+    if (maxPrice < 5000) query = query.lte('price', maxPrice);
+    if (currentRating) query = query.gte('rating_avg', currentRating);
+    if (verified) query = query.eq('profiles.is_verified', true);
+
+    if (sort === 'rating') query = query.order('rating_avg', { ascending: false });
+    else if (sort === 'price_asc') query = query.order('price', { ascending: true });
+    else if (sort === 'price_desc') query = query.order('price', { ascending: false });
+    else if (sort === 'newest') query = query.order('updated_at', { ascending: false });
+
+    const { data, error } = await query;
+    if (error) throw error;
+    renderCards(data || []);
+  } catch(e) {
+    document.getElementById('grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">😕</div><h3>Что-то пошло не так</h3><p>Обновите страницу и попробуйте снова</p></div>`;
+  }
+}
+
+function renderCards(tutors) {
+  const grid = document.getElementById('grid');
+  document.getElementById('count').textContent = tutors.length;
+  if (!tutors.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><h3>Репетиторов не найдено</h3><p>Попробуй изменить фильтры или выбрать другой предмет</p></div>`;
+    return;
+  }
+  grid.innerHTML = tutors.map(t => {
+    const name = t.profiles?.full_name || 'Репетитор';
+    const isVerified = t.profiles?.is_verified;
+    const rating = parseFloat(t.rating_avg) || 0;
+    const stars = rating > 0 ? ('⭐ ' + rating.toFixed(1) + (t.reviews_count > 0 ? ` (${t.reviews_count})` : '')) : 'Нет отзывов';
+    const avatarHtml = t.avatar_url
+      ? `<img class="avatar" src="${t.avatar_url}" alt="${name}" loading="lazy">`
+      : `<div class="avatar-placeholder" style="background:${avatarColor(name)}">${getInitials(name)}</div>`;
+    return `
+      <div class="tutor-card">
+        <div class="card-top">
+          ${avatarHtml}
+          <div>
+            <div class="card-name-row">
+              <span class="card-name">${name}</span>
+              ${isVerified ? '<span class="verified-badge">✓ Верифицирован</span>' : ''}
+            </div>
+            <div class="card-subject">📚 ${t.subject || '—'}</div>
+          </div>
+        </div>
+        <div class="card-meta">
+          <div class="card-meta-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            ${stars}
+          </div>
+          <div class="card-meta-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            ${t.price ? t.price + ' ₽ / занятие' : 'Цена не указана'}
+          </div>
+        </div>
+        <div class="card-actions">
+          <a href="tutor.html?id=${t.id}" class="btn-card-secondary">Подробнее</a>
+          <button class="btn-card-primary" onclick='openModal(${JSON.stringify({ id: t.id, name, subject: t.subject })})'>Написать</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openModal(tutor) {
+  currentTutor = tutor;
+  const color = avatarColor(tutor.name);
+  const initials = getInitials(tutor.name);
+  document.getElementById('modal-tutor-info').innerHTML = `
+    <div class="avatar-placeholder" style="background:${color};width:40px;height:40px;font-size:14px;font-weight:900;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center">${initials}</div>
+    <div>
+      <div class="tutor-mini-name">${tutor.name}</div>
+      <div class="tutor-mini-sub">📚 ${tutor.subject || 'Репетитор'}</div>
+    </div>`;
+  if (session?.user) {
+    document.getElementById('req-name').value = session.user.user_metadata?.full_name || '';
+    document.getElementById('req-email').value = session.user.email || '';
+  }
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+async function sendRequest() {
+  const name = document.getElementById('req-name').value.trim();
+  const email = document.getElementById('req-email').value.trim();
+  const phone = document.getElementById('req-phone').value.trim();
+  const msg = document.getElementById('req-msg').value.trim();
+
+  if (!name || !email) { showToast('Введите имя и email', 'err'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Введите корректный email', 'err'); return; }
+
+  const btn = document.getElementById('btn-send');
+  btn.disabled = true;
+  document.getElementById('send-spinner').style.display = 'block';
+  document.getElementById('send-text').textContent = 'Отправляем...';
+
+  try {
+    const payload = {
+      tutor_id: currentTutor.id,
+      student_name: name,
+      student_email: email,
+      student_phone: phone || null,
+      message: msg || null
+    };
+    if (session?.user) payload.student_id = session.user.id;
+
+    const { error } = await sb.from('contact_requests').insert(payload);
+    if (error) throw error;
+
+    showToast('Заявка отправлена! Репетитор свяжется с вами 📬');
+    closeModal();
+    document.getElementById('req-name').value = '';
+    document.getElementById('req-email').value = '';
+    document.getElementById('req-phone').value = '';
+    document.getElementById('req-msg').value = '';
+  } catch(e) {
+    showToast('Не удалось отправить заявку. Попробуйте снова', 'err');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('send-spinner').style.display = 'none';
+    document.getElementById('send-text').textContent = 'Отправить заявку';
+  }
+}
+
+async function init() {
+  const { data: { session: s } } = await sb.auth.getSession();
+  session = s;
+  if (session) {
+    document.getElementById('nav-login').style.display = 'none';
+    document.getElementById('nav-cabinet').style.display = 'inline-flex';
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const subjectParam = params.get('subject');
+  if (subjectParam) document.getElementById('filter-subject').value = subjectParam;
+  updatePriceLabel();
+  doSearch();
+}
+
+init();
+</script>
+</body>
+</html>

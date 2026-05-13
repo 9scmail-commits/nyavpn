@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профиль репетитора — MentorSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --cream: #FEFCF7; --white: #FFFFFF; --cream-2: #F7F3EB; --cream-3: #EDE8DC;
+      --border: #EAE5D9; --text: #2C2822; --muted: #9B9083;
+      --accent: #5C73F2; --accent-light: #EEF0FF; --accent-hover: #4A60E8;
+      --success: #34C97A; --success-light: #EDFAF3; --danger: #F05252; --warning: #F59E0B;
+      --radius: 16px; --radius-sm: 10px; --radius-lg: 24px;
+      --shadow: 0 2px 20px rgba(44,40,34,0.07); --shadow-lg: 0 8px 40px rgba(44,40,34,0.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: var(--cream); color: var(--text); font-weight: 500; }
+    a { text-decoration: none; color: inherit; }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(254,252,247,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 20px; }
+    .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.5; }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a { padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 600; font-size: 15px; color: var(--muted); transition: 0.2s; }
+    .nav-links a:hover { color: var(--text); background: var(--cream-2); }
+    .btn-nav { background: var(--accent) !important; color: #fff !important; font-weight: 800 !important; }
+    @media (max-width: 640px) { .nav-links a:not(.btn-nav):not(#nav-cabinet) { display: none; } }
+
+    .page-wrap { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 700; font-size: 14px; margin-bottom: 24px; transition: 0.2s; }
+    .back-link:hover { color: var(--accent); }
+
+    /* PROFILE HEADER */
+    .profile-header {
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px;
+      margin-bottom: 24px; box-shadow: var(--shadow);
+    }
+    .profile-top { display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+    .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .profile-avatar-placeholder { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 32px; color: #fff; flex-shrink: 0; }
+    .profile-info { flex: 1; min-width: 200px; }
+    .profile-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .profile-name { font-size: 26px; font-weight: 900; }
+    .verified-badge { background: var(--accent-light); color: var(--accent); font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 100px; }
+    .profile-subject { color: var(--muted); font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+    .profile-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+    .profile-meta-item { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
+    .profile-meta-item svg { flex-shrink: 0; }
+    .social-link { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--cream-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-weight: 700; font-size: 14px; color: var(--text); transition: 0.2s; }
+    .social-link:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .profile-action { margin-left: auto; }
+    .btn-contact { padding: 12px 24px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; }
+    .btn-contact:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(92,115,242,0.35); }
+
+    /* LAYOUT BELOW HEADER */
+    .profile-body { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .profile-body { grid-template-columns: 1fr; } }
+
+    .section-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px; box-shadow: var(--shadow); }
+    .section-card-title { font-size: 18px; font-weight: 900; margin-bottom: 16px; }
+    .about-text { color: var(--text); line-height: 1.8; font-size: 15px; white-space: pre-wrap; }
+    .no-about { color: var(--muted); font-size: 15px; }
+
+    /* STICKY SIDEBAR FORM */
+    .contact-sidebar { position: sticky; top: 88px; }
+    .contact-form-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow); }
+    .contact-form-title { font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+    .contact-form-sub { color: var(--muted); font-size: 14px; font-weight: 600; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 5px; }
+    .form-input { width: 100%; padding: 10px 14px; background: var(--cream-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); transition: 0.2s; outline: none; }
+    .form-input:focus { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 3px rgba(92,115,242,0.12); }
+    textarea.form-input { resize: vertical; min-height: 80px; }
+    .btn-full { width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-full:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(92,115,242,0.35); }
+    .btn-full:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* MOBILE CONTACT BTN */
+    .mobile-contact-btn { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; padding: 16px 24px; background: var(--white); border-top: 1px solid var(--border); }
+    @media (max-width: 900px) { .mobile-contact-btn { display: block; } .contact-sidebar { display: none; } }
+
+    /* REVIEWS */
+    .reviews-list { display: flex; flex-direction: column; gap: 16px; }
+    .review-card { background: var(--cream-2); border-radius: var(--radius); padding: 20px; }
+    .review-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+    .review-author { font-weight: 800; font-size: 15px; }
+    .review-meta { display: flex; align-items: center; gap: 10px; }
+    .review-stars { color: var(--warning); font-size: 14px; }
+    .review-date { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .review-text { font-size: 14px; color: var(--text); line-height: 1.6; }
+    .review-your { border: 1.5px solid var(--accent); background: var(--accent-light); }
+    .review-your-badge { font-size: 11px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+    .no-reviews { text-align: center; padding: 32px; color: var(--muted); font-size: 15px; }
+
+    .btn-review { padding: 10px 20px; background: var(--white); color: var(--text); border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s; }
+    .btn-review:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* STAR RATING PICKER */
+    .stars-picker { display: flex; gap: 6px; margin: 12px 0; }
+    .stars-picker .star { font-size: 28px; cursor: pointer; opacity: 0.3; transition: 0.15s; }
+    .stars-picker .star.active { opacity: 1; }
+    .stars-picker .star:hover { transform: scale(1.1); }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 24px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--white); border-radius: var(--radius-lg); padding: 32px; width: 100%; max-width: 440px; box-shadow: var(--shadow-lg); animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes modalIn { from { transform: scale(0.95) translateY(10px); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-weight: 900; font-size: 20px; }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--muted); }
+    .modal-close svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* SKELETON */
+    .skeleton { background: linear-gradient(90deg, var(--cream-2) 25%, var(--cream-3) 50%, var(--cream-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-sm); }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* BOTTOMSHEET */
+    .bottomsheet-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; }
+    .bottomsheet-overlay.open { display: block; }
+    .bottomsheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 250; background: var(--white); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 24px; max-height: 90vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    .bottomsheet.open { transform: translateY(0); }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: #fff; padding: 14px 24px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; box-shadow: var(--shadow-lg); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 9999; max-width: calc(100vw - 48px); }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.err { background: var(--danger); }
+
+    .error-page { text-align: center; padding: 80px 24px; }
+    .error-page h2 { font-size: 24px; font-weight: 900; margin-bottom: 12px; }
+    .error-page p { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="index.html">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      Mentor<span>Space</span>
+    </a>
+    <div class="nav-links">
+      <a href="search.html">Найти репетитора</a>
+      <a href="dashboard.html" id="nav-cabinet" style="display:none">Кабинет</a>
+      <a href="auth.html" id="nav-login" class="btn-nav">Войти</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-wrap" id="page-content">
+  <div style="padding:60px;text-align:center">
+    <div class="skeleton" style="height:120px;border-radius:var(--radius-lg);margin-bottom:24px"></div>
+    <div class="skeleton" style="height:300px;border-radius:var(--radius-lg)"></div>
+  </div>
+</div>
+
+<!-- BOTTOMSHEET (mobile contact) -->
+<div class="bottomsheet-overlay" id="bs-overlay" onclick="closeBS()"></div>
+<div class="bottomsheet" id="bottomsheet">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div style="font-size:18px;font-weight:900">Написать репетитору</div>
+    <button onclick="closeBS()" style="background:none;border:none;cursor:pointer;color:var(--muted)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="bs-form"></div>
+</div>
+
+<!-- REVIEW MODAL -->
+<div class="modal-overlay" id="review-modal" onclick="handleReviewOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Оставить отзыв</div>
+      <button class="modal-close" onclick="closeReviewModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="font-size:14px;color:var(--muted);font-weight:600;margin-bottom:12px">Оцените репетитора:</div>
+    <div class="stars-picker" id="stars-picker">
+      <span class="star" onclick="setStar(1)">⭐</span>
+      <span class="star" onclick="setStar(2)">⭐</span>
+      <span class="star" onclick="setStar(3)">⭐</span>
+      <span class="star" onclick="setStar(4)">⭐</span>
+      <span class="star" onclick="setStar(5)">⭐</span>
+    </div>
+    <div class="form-group" style="margin-top:16px">
+      <label class="form-label">Ваш отзыв</label>
+      <textarea class="form-input" id="review-text" rows="4" placeholder="Поделитесь опытом занятий..."></textarea>
+    </div>
+    <button class="btn-full" id="btn-review-submit" onclick="submitReview()">
+      <div class="spinner" id="review-spinner"></div>
+      <span id="review-btn-text">Опубликовать отзыв</span>
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toast-icon"></span><span id="toast-msg"></span></div>
+
+<script>
+const sb = supabase.createClient(
+  'https://zskocbphdwcoskknyuru.supabase.co',
+  'sb_publishable_Yxz_EllSK1ZTxfXfLj222Q_7CEOM2Yb'
+);
+
+let session = null;
+let profile = null;
+let tutorData = null;
+let reviewRating = 0;
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'ok' ? '✓' : '✕';
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function getInitials(name) { return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function avatarColor(str) {
+  const colors = ['#5C73F2','#34C97A','#F59E0B','#F05252','#8B5CF6','#EC4899'];
+  let h = 0; for (let c of (str||'x')) h = c.charCodeAt(0) + ((h<<5)-h);
+  return colors[Math.abs(h) % colors.length];
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+}
+
+function starsHtml(n) {
+  return '⭐'.repeat(Math.round(n || 0)) + '☆'.repeat(5 - Math.round(n || 0));
+}
+
+function contactFormHtml(submitFn) {
+  const nameVal = session?.user?.user_metadata?.full_name || '';
+  const emailVal = session?.user?.email || '';
+  return `
+    <div class="form-group"><label class="form-label">Ваше имя *</label><input class="form-input" type="text" id="cf-name" value="${nameVal}" placeholder="Иван Иванов"></div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" id="cf-email" value="${emailVal}" placeholder="your@email.com"></div>
+    <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" type="tel" id="cf-phone" placeholder="+7 999 123-45-67"></div>
+    <div class="form-group"><label class="form-label">Сообщение</label><textarea class="form-input" id="cf-msg" rows="3" placeholder="Расскажите о ваших целях..."></textarea></div>
+    <button class="btn-full" id="btn-cf" onclick="${submitFn}()">
+      <div class="spinner" id="cf-spinner"></div>
+      <span id="cf-text">Отправить заявку</span>
+    </button>`;
+}
+
+async function sendContactForm(prefix) {
+  const nameEl = document.getElementById(prefix + 'name');
+  const emailEl = document.getElementById(prefix + 'email');
+  const phoneEl = document.getElementById(prefix + 'phone');
+  const msgEl = document.getElementById(prefix + 'msg');
+  const name = nameEl?.value.trim();
+  const email = emailEl?.value.trim();
+  const phone = phoneEl?.value.trim();
+  const msg = msgEl?.value.trim();
+
+  if (!name || !email) { showToast('Введите имя и email', 'err'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Введите корректный email', 'err'); return; }
+
+  const btn = document.getElementById('btn-cf');
+  const spinner = document.getElementById('cf-spinner');
+  const text = document.getElementById('cf-text');
+  if (btn) btn.disabled = true;
+  if (spinner) spinner.style.display = 'block';
+  if (text) text.textContent = 'Отправляем...';
+
+  try {
+    const payload = {
+      tutor_id: tutorData.id,
+      student_name: name,
+      student_email: email,
+      student_phone: phone || null,
+      message: msg || null
+    };
+    if (session?.user) payload.student_id = session.user.id;
+    const { error } = await sb.from('contact_requests').insert(payload);
+    if (error) throw error;
+    showToast('Заявка отправлена! Репетитор свяжется с вами 📬');
+    closeBS();
+  } catch(e) {
+    showToast('Не удалось отправить заявку', 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (spinner) spinner.style.display = 'none';
+    if (text) text.textContent = 'Отправить заявку';
+  }
+}
+
+function openBS() {
+  document.getElementById('bs-form').innerHTML = contactFormHtml('sendBS');
+  document.getElementById('bottomsheet').classList.add('open');
+  document.getElementById('bs-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeBS() {
+  document.getElementById('bottomsheet').classList.remove('open');
+  document.getElementById('bs-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function sendBS() { sendContactForm('cf-'); }
+function sendSidebar() { sendContactForm('cf-'); }
+
+function setStar(n) {
+  reviewRating = n;
+  document.querySelectorAll('.stars-picker .star').forEach((s, i) => s.classList.toggle('active', i < n));
+}
+
+function openReviewModal() { document.getElementById('review-modal').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeReviewModal() { document.getElementById('review-modal').classList.remove('open'); document.body.style.overflow = ''; }
+function handleReviewOverlay(e) { if (e.target === document.getElementById('review-modal')) closeReviewModal(); }
+
+async function checkCanReview() {
+  if (!session?.user || !tutorData) return false;
+  const { data } = await sb.from('contact_requests').select('id').eq('tutor_id', tutorData.id).eq('student_id', session.user.id).eq('status', 'done').limit(1);
+  return data && data.length > 0;
+}
+
+async function handleReviewClick() {
+  if (!session) { showToast('Войдите в аккаунт, чтобы оставить отзыв', 'err'); return; }
+  if (profile?.role !== 'student') { showToast('Отзывы могут оставлять только ученики', 'err'); return; }
+  const can = await checkCanReview();
+  if (!can) { showToast('Вы можете оставить отзыв только после занятия', 'err'); return; }
+  openReviewModal();
+}
+
+async function submitReview() {
+  if (!reviewRating) { showToast('Выберите оценку', 'err'); return; }
+  const text = document.getElementById('review-text').value.trim();
+  const btn = document.getElementById('btn-review-submit');
+  btn.disabled = true;
+  document.getElementById('review-spinner').style.display = 'block';
+  document.getElementById('review-btn-text').textContent = 'Публикуем...';
+  try {
+    const { error } = await sb.from('reviews').insert({
+      tutor_id: tutorData.id,
+      student_id: session.user.id,
+      rating: reviewRating,
+      text: text || null
+    });
+    if (error) {
+      if (error.code === '23505') { showToast('Вы уже оставили отзыв этому репетитору', 'err'); }
+      else throw error;
+    } else {
+      showToast('Отзыв опубликован! Спасибо 🙏');
+      closeReviewModal();
+      loadReviews();
+    }
+  } catch(e) {
+    showToast('Не удалось опубликовать отзыв', 'err');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('review-spinner').style.display = 'none';
+    document.getElementById('review-btn-text').textContent = 'Опубликовать отзыв';
+  }
+}
+
+async function loadReviews() {
+  const { data: reviews } = await sb
+    .from('reviews')
+    .select('*, profiles!student_id(full_name)')
+    .eq('tutor_id', tutorData.id)
+    .order('created_at', { ascending: false });
+
+  const myReview = reviews?.find(r => r.student_id === session?.user?.id);
+  const others = reviews?.filter(r => r.student_id !== session?.user?.id) || [];
+  const all = myReview ? [myReview, ...others] : (others || []);
+
+  const reviewsEl = document.getElementById('reviews-section');
+  if (!reviewsEl) return;
+
+  let canReview = false;
+  if (session?.user && profile?.role === 'student') {
+    canReview = await checkCanReview();
+  }
+
+  const reviewBtn = !myReview && canReview
+    ? `<button class="btn-review" onclick="handleReviewClick()">Оставить отзыв ⭐</button>`
+    : (myReview ? '' : (session ? '' : `<div style="font-size:14px;color:var(--muted);font-weight:600">Оставить отзыв можно только после занятия</div>`));
+
+  reviewsEl.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div class="section-card-title" style="margin-bottom:0">Отзывы ${all.length > 0 ? '(' + all.length + ')' : ''}</div>
+      ${reviewBtn}
+    </div>
+    ${all.length === 0
+      ? `<div class="no-reviews">😌 Пока нет отзывов. Будьте первым!</div>`
+      : `<div class="reviews-list">${all.map(r => {
+          const isMyReview = r.student_id === session?.user?.id;
+          return `<div class="review-card${isMyReview ? ' review-your' : ''}">
+            ${isMyReview ? '<div class="review-your-badge">Ваш отзыв</div>' : ''}
+            <div class="review-header">
+              <div class="review-author">${r.profiles?.full_name || 'Ученик'}</div>
+              <div class="review-meta">
+                <div class="review-stars">${starsHtml(r.rating)}</div>
+                <div class="review-date">${formatDate(r.created_at)}</div>
+              </div>
+            </div>
+            ${r.text ? `<div class="review-text">${r.text}</div>` : ''}
+          </div>`;
+        }).join('')}</div>`
+    }`;
+}
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const tutorId = params.get('id');
+
+  const { data: { session: s } } = await sb.auth.getSession();
+  session = s;
+  if (session) {
+    document.getElementById('nav-login').style.display = 'none';
+    document.getElementById('nav-cabinet').style.display = 'inline-flex';
+    const { data: p } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+    profile = p;
+  }
+
+  if (!tutorId) {
+    document.getElementById('page-content').innerHTML = `<div class="error-page"><h2>Репетитор не найден</h2><p><a href="search.html" style="color:var(--accent)">Вернуться к поиску</a></p></div>`;
+    return;
+  }
+
+  try {
+    const { data: tutor, error } = await sb
+      .from('tutor_profiles')
+      .select('*, profiles!inner(full_name, is_verified, created_at)')
+      .eq('id', tutorId)
+      .eq('is_hidden', false)
+      .single();
+
+    if (error || !tutor) throw new Error('not found');
+    tutorData = tutor;
+
+    const name = tutor.profiles?.full_name || 'Репетитор';
+    const isVerified = tutor.profiles?.is_verified;
+    const color = avatarColor(name);
+    const initials = getInitials(name);
+    const year = new Date(tutor.profiles?.created_at).getFullYear();
+
+    document.title = `${name} — репетитор по ${tutor.subject || 'предмету'} | MentorSpace`;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', `${name} — репетитор по ${tutor.subject}. Рейтинг: ${tutor.rating_avg}, отзывов: ${tutor.reviews_count}. MentorSpace.`);
+
+    const avatarHtml = tutor.avatar_url
+      ? `<img class="profile-avatar" src="${tutor.avatar_url}" alt="${name}" loading="lazy">`
+      : `<div class="profile-avatar-placeholder" style="background:${color}">${initials}</div>`;
+
+    const socialHtml = tutor.social_link
+      ? `<a href="${tutor.social_link}" target="_blank" rel="noopener noreferrer" class="social-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Профиль в соцсети
+        </a>` : '';
+
+    const ratingDisplay = parseFloat(tutor.rating_avg) > 0
+      ? `⭐ ${parseFloat(tutor.rating_avg).toFixed(1)} (${tutor.reviews_count} отзывов)`
+      : 'Нет отзывов';
+
+    document.getElementById('page-content').innerHTML = `
+      <a href="search.html" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Вернуться к поиску
+      </a>
+
+      <div class="profile-header">
+        <div class="profile-top">
+          ${avatarHtml}
+          <div class="profile-info">
+            <div class="profile-name-row">
+              <span class="profile-name">${name}</span>
+              ${isVerified ? '<span class="verified-badge">✓ Верифицирован</span>' : ''}
+            </div>
+            <div class="profile-subject">📚 ${tutor.subject || 'Предмет не указан'}</div>
+            <div class="profile-meta">
+              <div class="profile-meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                ${ratingDisplay}
+              </div>
+              <div class="profile-meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                ${tutor.price ? tutor.price + ' ₽ / занятие' : 'Цена не указана'}
+              </div>
+              <div class="profile-meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                На платформе с ${year}
+              </div>
+            </div>
+            ${socialHtml}
+          </div>
+          <div class="profile-action">
+            <button class="btn-contact" onclick="openBS()">Написать репетитору</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-body">
+        <div>
+          <div class="section-card">
+            <div class="section-card-title">О себе</div>
+            ${tutor.about
+              ? `<div class="about-text">${tutor.about.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
+              : `<div class="no-about">Репетитор пока не заполнил раздел "О себе".</div>`}
+          </div>
+          <div class="section-card" id="reviews-section">
+            <div style="text-align:center;padding:20px;color:var(--muted)">Загружаем отзывы...</div>
+          </div>
+        </div>
+
+        <div class="contact-sidebar">
+          <div class="contact-form-card">
+            <div class="contact-form-title">Написать репетитору</div>
+            <div class="contact-form-sub">Оставьте заявку — репетитор свяжется с вами</div>
+            ${contactFormHtml('sendSidebar')}
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-contact-btn">
+        <button class="btn-full" onclick="openBS()" style="border-radius:var(--radius-sm)">Написать репетитору</button>
+      </div>`;
+
+    loadReviews();
+  } catch(e) {
+    document.getElementById('page-content').innerHTML = `
+      <div class="error-page">
+        <h2>Репетитор не найден</h2>
+        <p style="margin-bottom:16px">Возможно, профиль был удалён или скрыт.</p>
+        <a href="search.html" style="color:var(--accent);font-weight:700">← Вернуться к поиску</a>
+      </div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

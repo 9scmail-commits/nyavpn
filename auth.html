@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход и регистрация — MentorSpace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --cream: #FEFCF7; --white: #FFFFFF; --cream-2: #F7F3EB; --cream-3: #EDE8DC;
+      --border: #EAE5D9; --text: #2C2822; --muted: #9B9083;
+      --accent: #5C73F2; --accent-light: #EEF0FF; --accent-hover: #4A60E8;
+      --success: #34C97A; --success-light: #EDFAF3; --danger: #F05252;
+      --radius: 16px; --radius-sm: 10px; --radius-lg: 24px;
+      --shadow: 0 2px 20px rgba(44,40,34,0.07); --shadow-lg: 0 8px 40px rgba(44,40,34,0.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      font-weight: 500;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    .nav {
+      background: rgba(254,252,247,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 24px;
+      height: 64px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 20px; }
+    .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.5; }
+    .logo span { color: var(--accent); }
+
+    .auth-wrapper {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 40px 24px;
+    }
+    .auth-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 40px;
+      width: 100%; max-width: 460px;
+    }
+    .auth-logo {
+      text-align: center; margin-bottom: 28px;
+    }
+    .auth-logo .logo { justify-content: center; font-size: 22px; }
+
+    .tabs {
+      display: flex; background: var(--cream-2); border-radius: var(--radius-sm);
+      padding: 4px; margin-bottom: 32px; gap: 4px;
+    }
+    .tab {
+      flex: 1; text-align: center; padding: 10px;
+      border-radius: 8px; font-weight: 700; font-size: 15px;
+      cursor: pointer; color: var(--muted); transition: 0.2s;
+    }
+    .tab.active { background: var(--white); color: var(--text); box-shadow: var(--shadow); }
+
+    .form-group { margin-bottom: 18px; }
+    .form-label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--text); }
+    .form-input {
+      width: 100%; padding: 12px 16px;
+      background: var(--cream-2); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-family: 'Nunito', sans-serif;
+      font-size: 15px; font-weight: 500; color: var(--text);
+      transition: 0.2s; outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 3px rgba(92,115,242,0.12); }
+    .form-input.error { border-color: var(--danger); background: #fff5f5; }
+    .field-error { color: var(--danger); font-size: 13px; font-weight: 600; margin-top: 5px; display: none; }
+    .field-error.show { display: block; }
+
+    .input-wrap { position: relative; }
+    .input-wrap .form-input { padding-right: 44px; }
+    .toggle-pass {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      padding: 4px; display: flex; align-items: center;
+    }
+    .toggle-pass:hover { color: var(--text); }
+    .toggle-pass svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    .pass-strength { display: flex; gap: 4px; margin-top: 8px; }
+    .pass-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--cream-3); transition: 0.3s; }
+    .pass-bar.weak { background: var(--danger); }
+    .pass-bar.fair { background: var(--warning); }
+    .pass-bar.good { background: var(--accent); }
+    .pass-bar.strong { background: var(--success); }
+    .pass-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+
+    .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .role-card {
+      border: 2px solid var(--border); border-radius: var(--radius);
+      padding: 16px; cursor: pointer; transition: 0.2s; text-align: center;
+      background: var(--white);
+    }
+    .role-card:hover { border-color: var(--accent); background: var(--accent-light); }
+    .role-card.selected { border-color: var(--accent); background: var(--accent-light); }
+    .role-card.selected .role-title { color: var(--accent); }
+    .role-emoji { font-size: 32px; margin-bottom: 8px; }
+    .role-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; transition: 0.2s; }
+    .role-sub { font-size: 13px; color: var(--muted); }
+    .roles-error { text-align: center; color: var(--danger); font-size: 13px; font-weight: 600; display: none; }
+    .roles-error.show { display: block; }
+
+    .forgot { text-align: right; }
+    .forgot a { font-size: 13px; font-weight: 600; color: var(--accent); }
+    .forgot a:hover { text-decoration: underline; }
+
+    .btn-full {
+      width: 100%; padding: 14px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius-sm);
+      font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 16px;
+      cursor: pointer; transition: 0.2s; position: relative;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-full:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(92,115,242,0.35); }
+    .btn-full:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .spinner {
+      width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0; color: var(--muted); font-size: 13px; font-weight: 600;
+    }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .btn-google {
+      width: 100%; padding: 12px;
+      background: var(--white); color: var(--text);
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 15px;
+      cursor: pointer; transition: 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-google:hover { background: var(--cream-2); transform: translateY(-1px); box-shadow: var(--shadow); }
+    .google-icon { width: 20px; height: 20px; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--text); color: #fff;
+      padding: 14px 24px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 9999; max-width: calc(100vw - 48px);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.err { background: var(--danger); }
+    .toast.ok { background: #1a1a1a; }
+
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="index.html">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      Mentor<span>Space</span>
+    </a>
+  </div>
+</nav>
+
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <a class="logo" href="index.html">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        Mentor<span>Space</span>
+      </a>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-login" onclick="switchTab('login')">Вход</div>
+      <div class="tab" id="tab-register" onclick="switchTab('register')">Регистрация</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="form-panel active" id="panel-login">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+        <div class="field-error" id="login-email-err">Введите корректный email</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Пароль</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="login-pass" placeholder="Ваш пароль" autocomplete="current-password">
+          <button class="toggle-pass" type="button" onclick="togglePass('login-pass', this)">
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="field-error" id="login-pass-err">Введите пароль</div>
+      </div>
+      <div class="forgot" style="margin-bottom:20px">
+        <a href="#" onclick="forgotPassword(event)">Забыли пароль?</a>
+      </div>
+      <button class="btn-full" id="btn-login" onclick="doLogin()">
+        <div class="spinner" id="login-spinner"></div>
+        <span id="login-btn-text">Войти</span>
+      </button>
+      <div class="divider">или</div>
+      <button class="btn-google" onclick="loginGoogle()">
+        <svg class="google-icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Войти через Google
+      </button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="form-panel" id="panel-register">
+      <div class="form-group">
+        <label class="form-label">Ваше имя</label>
+        <input class="form-input" type="text" id="reg-name" placeholder="Иван Иванов" autocomplete="name">
+        <div class="field-error" id="reg-name-err">Введите ваше имя</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email">
+        <div class="field-error" id="reg-email-err">Введите корректный email</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Пароль</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="reg-pass" placeholder="Минимум 8 символов" autocomplete="new-password" oninput="checkStrength(this.value)">
+          <button class="toggle-pass" type="button" onclick="togglePass('reg-pass', this)">
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="pass-strength">
+          <div class="pass-bar" id="pb1"></div>
+          <div class="pass-bar" id="pb2"></div>
+          <div class="pass-bar" id="pb3"></div>
+          <div class="pass-bar" id="pb4"></div>
+        </div>
+        <div class="pass-label" id="pass-label">Введите пароль</div>
+        <div class="field-error" id="reg-pass-err">Пароль должен содержать минимум 8 символов</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Выберите роль</label>
+        <div class="roles">
+          <div class="role-card" id="role-student" onclick="selectRole('student')">
+            <div class="role-emoji">📚</div>
+            <div class="role-title">Ученик</div>
+            <div class="role-sub">Ищу репетитора</div>
+          </div>
+          <div class="role-card" id="role-tutor" onclick="selectRole('tutor')">
+            <div class="role-emoji">🎓</div>
+            <div class="role-title">Репетитор</div>
+            <div class="role-sub">Провожу занятия</div>
+          </div>
+        </div>
+        <div class="roles-error" id="role-err">Выберите роль для продолжения</div>
+      </div>
+
+      <button class="btn-full" id="btn-register" onclick="doRegister()">
+        <div class="spinner" id="reg-spinner"></div>
+        <span id="reg-btn-text">Создать аккаунт</span>
+      </button>
+      <div class="divider">или</div>
+      <button class="btn-google" onclick="loginGoogle()">
+        <svg class="google-icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Войти через Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toast-icon"></span>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://zskocbphdwcoskknyuru.supabase.co',
+  'sb_publishable_Yxz_EllSK1ZTxfXfLj222Q_7CEOM2Yb'
+);
+
+let selectedRole = null;
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'ok' ? '✓' : '✕';
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('panel-login').classList.toggle('active', tab === 'login');
+  document.getElementById('panel-register').classList.toggle('active', tab === 'register');
+}
+
+function togglePass(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.querySelector('svg').innerHTML = inp.type === 'password'
+    ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
+    : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById('role-student').classList.toggle('selected', role === 'student');
+  document.getElementById('role-tutor').classList.toggle('selected', role === 'tutor');
+  document.getElementById('role-err').classList.remove('show');
+}
+
+function checkStrength(val) {
+  const bars = [document.getElementById('pb1'), document.getElementById('pb2'), document.getElementById('pb3'), document.getElementById('pb4')];
+  const label = document.getElementById('pass-label');
+  bars.forEach(b => b.className = 'pass-bar');
+  if (!val) { label.textContent = 'Введите пароль'; return; }
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const labels = ['', 'Слабый', 'Средний', 'Хороший', 'Надёжный'];
+  const cls = ['', 'weak', 'fair', 'good', 'strong'];
+  for (let i = 0; i < score; i++) bars[i].className = 'pass-bar ' + cls[score];
+  label.textContent = labels[score] || '';
+}
+
+function showErr(id, show) {
+  document.getElementById(id).classList.toggle('show', show);
+}
+function setInputErr(id, err) {
+  document.getElementById(id).classList.toggle('error', err);
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  let valid = true;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('login-email-err', true); setInputErr('login-email', true); valid = false; } else { showErr('login-email-err', false); setInputErr('login-email', false); }
+  if (!pass) { showErr('login-pass-err', true); setInputErr('login-pass', true); valid = false; } else { showErr('login-pass-err', false); setInputErr('login-pass', false); }
+  if (!valid) return;
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  document.getElementById('login-spinner').style.display = 'block';
+  document.getElementById('login-btn-text').textContent = 'Входим...';
+
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    showToast('Добро пожаловать! 👋');
+    setTimeout(() => window.location.href = 'dashboard.html', 800);
+  } catch(e) {
+    btn.disabled = false;
+    document.getElementById('login-spinner').style.display = 'none';
+    document.getElementById('login-btn-text').textContent = 'Войти';
+    const msgs = {
+      'Invalid login credentials': 'Неверный email или пароль',
+      'Email not confirmed': 'Подтвердите email перед входом',
+      'Too many requests': 'Слишком много попыток, подождите немного'
+    };
+    showToast(msgs[e.message] || 'Ошибка входа. Попробуйте снова', 'err');
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  let valid = true;
+
+  if (!name) { showErr('reg-name-err', true); setInputErr('reg-name', true); valid = false; } else { showErr('reg-name-err', false); setInputErr('reg-name', false); }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('reg-email-err', true); setInputErr('reg-email', true); valid = false; } else { showErr('reg-email-err', false); setInputErr('reg-email', false); }
+  if (pass.length < 8) { showErr('reg-pass-err', true); setInputErr('reg-pass', true); valid = false; } else { showErr('reg-pass-err', false); setInputErr('reg-pass', false); }
+  if (!selectedRole) { document.getElementById('role-err').classList.add('show'); valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true;
+  document.getElementById('reg-spinner').style.display = 'block';
+  document.getElementById('reg-btn-text').textContent = 'Создаём аккаунт...';
+
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email, password: pass,
+      options: { data: { full_name: name, role: selectedRole } }
+    });
+    if (error) throw error;
+
+    const userId = data.user?.id;
+    if (userId) {
+      await sb.from('profiles').insert({ id: userId, role: selectedRole, full_name: name });
+      if (selectedRole === 'tutor') {
+        await sb.from('tutor_profiles').insert({ id: userId, social_link: '' });
+      }
+    }
+
+    showToast('Аккаунт создан! Проверьте почту 📧');
+    setTimeout(() => window.location.href = 'dashboard.html', 1200);
+  } catch(e) {
+    btn.disabled = false;
+    document.getElementById('reg-spinner').style.display = 'none';
+    document.getElementById('reg-btn-text').textContent = 'Создать аккаунт';
+    const msgs = {
+      'User already registered': 'Пользователь с таким email уже зарегистрирован',
+      'Password should be at least 6 characters': 'Пароль должен содержать минимум 6 символов',
+      'Unable to validate email address: invalid format': 'Некорректный формат email'
+    };
+    showToast(msgs[e.message] || ('Ошибка регистрации: ' + e.message), 'err');
+  }
+}
+
+async function loginGoogle() {
+  try {
+    await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/dashboard.html' }
+    });
+  } catch(e) {
+    showToast('Не удалось войти через Google', 'err');
+  }
+}
+
+async function forgotPassword(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Введите email в поле выше', 'err'); return;
+  }
+  try {
+    await sb.auth.resetPasswordForEmail(email);
+    showToast('Ссылка для восстановления отправлена на почту 📧');
+  } catch(e) {
+    showToast('Не удалось отправить письмо', 'err');
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('panel-login').classList.contains('active')) doLogin();
+    else doRegister();
+  }
+});
+
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = 'dashboard.html';
+});
+</script>
+</body>
+</html>
